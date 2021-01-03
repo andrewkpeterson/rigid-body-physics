@@ -1,0 +1,108 @@
+#include "VAO.h"
+
+#include "VBO.h"
+#include "IBO.h"
+
+VAO::VAO(const VBO &vbo, int numberOfVerticesToRender) :
+    m_drawMethod(DRAW_ARRAYS),
+    m_handle(0),
+    m_numVertices(numberOfVerticesToRender),
+    m_size(0),
+    m_triangleLayout(vbo.triangleLayout())
+{
+    // Generate the vertex array
+    glGenVertexArrays(1, &m_handle);
+
+    // Bind and generate the vbo
+    bind();
+    vbo.bindAndEnable();
+    unbind();
+    vbo.unbind();
+}
+
+VAO::VAO(const VBO &vbo, const IBO &ibo, int numberOfVerticesToRender) :
+    m_drawMethod(DRAW_INDEXED),
+    m_handle(0),
+    m_numVertices(numberOfVerticesToRender),
+    m_size(0),
+    m_triangleLayout(vbo.triangleLayout())
+{
+    // Same as above, but with ibo as well
+    glGenVertexArrays(1, &m_handle);
+    bind();
+    vbo.bindAndEnable();
+    ibo.bind();
+    unbind();
+    ibo.unbind();
+    vbo.unbind();
+}
+
+VAO::VAO(std::vector<VBO> &vbos, const IBO &ibo, int numberOfVerticesToRender) :
+    m_drawMethod(DRAW_INDEXED),
+    m_handle(0),
+    m_numVertices(numberOfVerticesToRender),
+    m_size(0),
+    m_triangleLayout(vbos[0].triangleLayout())
+{
+    // Same as above, but with ibo as well
+    glGenVertexArrays(1, &m_handle);
+    bind();
+    for (const VBO &vbo : vbos) { vbo.bindAndEnable(); }
+    ibo.bind(); // binding the IBO before the VAO is unbound attaches the IBO to the VAO
+    unbind();
+    ibo.unbind();
+    for (const VBO &vbo : vbos) { vbo.unbind(); }
+}
+
+VAO::VAO(VAO &&that) :
+    m_drawMethod(that.m_drawMethod),
+    m_numVertices(that.m_numVertices),
+    m_size(that.m_size),
+    m_triangleLayout(that.m_triangleLayout)
+{
+    that.m_handle = 0;
+}
+
+VAO& VAO::operator=(VAO &&that) {
+    this->~VAO();
+
+    m_drawMethod = that.m_drawMethod;
+    m_handle = that.m_handle;
+    m_numVertices = that.m_numVertices;
+    m_size = that.m_size;
+    m_triangleLayout = that.m_triangleLayout;
+
+    that.m_handle = 0;
+
+    return *this;
+}
+
+VAO::~VAO()
+{
+    glDeleteVertexArrays(1, &m_handle);
+}
+
+void VAO::draw() {
+    draw(m_numVertices);
+}
+
+void VAO::draw(int count) {
+    bind();
+    switch(m_drawMethod) {
+        case VAO::DRAW_ARRAYS:
+            glDrawArrays(m_triangleLayout, 0, count);
+            break;
+        case VAO::DRAW_INDEXED:
+            glDrawElements(m_triangleLayout, count, GL_UNSIGNED_INT, 0);
+            break;
+    }
+    unbind();
+}
+
+void VAO::bind() {
+    glBindVertexArray(m_handle);
+}
+
+void VAO::unbind() {
+    glBindVertexArray(0);
+}
