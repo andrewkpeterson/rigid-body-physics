@@ -12,6 +12,7 @@
 #include "src/engine/graphics/VAO.h"
 #include "src/engine/graphics/VBOAttribMarker.h"
 #include "src/engine/graphics/VBO.h"
+#include "src/engine/physics/PhysicsSystem.h"
 
 class Graphics;
 class Camera;
@@ -66,6 +67,8 @@ private:
     std::shared_ptr<Camera> m_axes_capture_camera;
 
     std::shared_ptr<Camera> m_camera;
+
+    std::unique_ptr<PhysicsSystem> m_physics_system;
 
 private slots:
     void tick();

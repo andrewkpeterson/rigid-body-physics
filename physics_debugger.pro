@@ -23,6 +23,9 @@ SOURCES += \
     libs/OpenFBX/src/miniz.c \
     libs/OpenFBX/src/ofbx.cpp \
     libs/glew-1.10.0/src/glew.c \
+    src/engine/physics/CuboidRigidBodyComponent.cpp \
+    src/engine/physics/CylinderRigidBodyComponent.cpp \
+    src/engine/physics/EllipsoidRigidBodyComponent.cpp \
     src/engine/physics/PhysicsSolver.cpp \
     src/engine/physics/PhysicsSystem.cpp \
     src/engine/physics/RigidBodyComponent.cpp \
@@ -58,6 +61,9 @@ HEADERS += \
     libs/glew-1.10.0/include/GL/glew.h \
     libs/stb/stb_rect_pack.h \
     libs/stb/stb_truetype.h \
+    src/engine/physics/CuboidRigidBodyComponent.h \
+    src/engine/physics/CylinderRigidBodyComponent.h \
+    src/engine/physics/EllipsoidRigidBodyComponent.h \
     src/engine/physics/PhysicsSolver.h \
     src/engine/physics/PhysicsSystem.h \
     src/engine/physics/RigidBodyComponent.h \

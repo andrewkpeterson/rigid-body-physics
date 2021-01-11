@@ -1,5 +1,5 @@
 #include "view.h"
-
+#include "src/mainwindow.h"
 #include "viewformat.h"
 #include "engine/graphics/GraphicsDebug.h"
 #include "engine/graphics/Graphics.h"
@@ -55,6 +55,7 @@ View::View(QWidget *parent) : QGLWidget(ViewFormat(), parent),
     m_frameIndex = 0;
 
     /** SUPPORT CODE END **/
+
 }
 
 View::~View()
@@ -110,7 +111,16 @@ void View::initializeGL()
     posMarkers.push_back(VBOAttribMarker(ShaderAttrib::POSITION, 3, 0));
     VBO posVBO(grid_positions.data(), grid_positions.size(), posMarkers, VBO::GEOMETRY_LAYOUT::LAYOUT_LINES);
     m_grid_vao = std::make_unique<VAO>(posVBO, grid_positions.size() / 3);
+
+    // add light
+    Light light1(Light::LIGHT_TYPE::POINT, glm::vec3(1,1,1), glm::vec3(0), glm::vec3(2,2,2), glm::vec2(0,0));
+    m_graphics->addLight(light1);
+    Light light2(Light::LIGHT_TYPE::POINT, glm::vec3(1,1,1), glm::vec3(0), glm::vec3(-2,2,-2), glm::vec2(0,0));
+    m_graphics->addLight(light2);
     /** SUPPORT CODE END **/
+
+    // create your physics system
+    m_physics_system = std::make_unique<PhysicsSystem>();
 }
 
 void View::paintGL()
@@ -126,7 +136,8 @@ void View::paintGL()
 
     checkError();
 
-    m_graphics->setShader("lines");
+    m_graphics->setShader(m_graphics->getShader("lines"));
+    checkError();
     m_graphics->setCamera(m_camera);
     m_graphics->clearTransform();
     m_grid_vao->draw();
@@ -134,6 +145,9 @@ void View::paintGL()
     checkError();
 
     /** SUPPORT CODE END **/
+
+    m_physics_system->draw();
+    checkError();
 
 
     /** SUPPORT CODE START **/
@@ -185,6 +199,10 @@ void View::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::RightButton) {
         m_right_mouse_pressed = true;
     }
+    MainWindow * win = (MainWindow *) QApplication::activeWindow();
+    if (win->getMode() == PhysicsDebuggerMode::COLLISION_MODE) {
+
+    }
 }
 
 void View::mouseMoveEvent(QMouseEvent *event)
@@ -215,11 +233,11 @@ void View::mouseReleaseEvent(QMouseEvent *event)
 void View::wheelEvent(QWheelEvent *event)
 {
     if (event->delta() > 0) {
-        m_distance_along_look -= .3;
+        m_distance_along_look -= 1;
     } else {
-        m_distance_along_look += .3;
+        m_distance_along_look += 1;
     }
-    m_distance_along_look = std::min(20.0f, std::max(5.0f, m_distance_along_look));
+    m_distance_along_look = std::min(35.0f, std::max(5.0f, m_distance_along_look));
 }
 
 void View::keyPressEvent(QKeyEvent *event)
@@ -277,18 +295,21 @@ void View::tick()
 
     // Display fps
     QString title = "CS195U Engine";
-
     m_window->setWindowTitle(title + ", FPS: " + QString::number(m_fps, 'f', 3));
 
     // set camera
     glm::vec3 look = m_camera->getLook();
     m_camera->setEye(glm::vec3(0,2,0) - m_distance_along_look*look);
-    m_axes_capture_camera->setEye(glm::vec3(0,2,0) - 5.0f*look);
+    m_axes_capture_camera->setEye(-5.0f*look);
 
     /** SUPPORT CODE END **/
 
-    // TODO: Set up your matrices for your animated model here!
+    MainWindow * win = (MainWindow *) QApplication::activeWindow();
+    if (win && win->getMode() == PhysicsDebuggerMode::PHYSICS_MODE) {
+        m_physics_system->tick(seconds);
+    } else if (win && win->getMode() == PhysicsDebuggerMode::COLLISION_MODE) {
 
+    }
 
     /** SUPPORT CODE START **/
 

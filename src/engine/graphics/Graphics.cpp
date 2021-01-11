@@ -537,7 +537,6 @@ void Graphics::setMaterial(const Material &m) {
     else {
         setUseTexture(0);
     }
-
     // Set active material
     m_activeMaterial = m;
     m_activeMaterialName = "";
@@ -781,6 +780,7 @@ void Graphics::setLight(const Light &light, int index) {
     setUniform(name + ".pos", light.pos);
     setUniform(name + ".att", light.att);
     setUniform(name + ".radius", light.getRadius());
+    checkError();
 
     // Keep track of lights
     m_numLights = glm::max(m_numLights, index + 1);
@@ -790,6 +790,7 @@ void Graphics::setLight(const Light &light, int index) {
         m_lights.resize(m_numLights);
         m_lights[index] = light;
     }
+    checkError();
 }
 
 void Graphics::addLight(const Light &light) {

@@ -39,7 +39,7 @@ uniform Material material = Material(1, vec3(1), 1, vec3(0), 1, 1, vec2(1), vec2
 uniform FontMaterial font = FontMaterial(0, vec2(0), vec2(1));
 
 // Lighting
-const int MAX_NUM_LIGHTS = 1;
+const int MAX_NUM_LIGHTS = 2;
 uniform int numLights = 0;
 uniform Light lights[MAX_NUM_LIGHTS];
 
