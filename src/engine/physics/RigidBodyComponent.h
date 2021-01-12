@@ -22,6 +22,9 @@ public:
 
     static glm::mat3 gramSchmidt(const glm::mat3 m);
 
+    float getMass() { return m_mass; }
+    glm::mat3 getInverseInertiaTensor() { return m_intertia_tensor_inverse; }
+
     void addToPosition(glm::vec3 p) { m_transform_component->setPosition(m_transform_component->getPosition() + p); }
     void setPosition(glm::vec3 p) { m_transform_component->setPosition(p); }
     glm::vec3 getPosition() const { return m_transform_component->getPosition(); }
@@ -36,6 +39,9 @@ public:
     glm::vec3 getAngularMomentum() const { return m_angular_momentum; }
 
     glm::vec3 getLinearVelocity() const { return m_linear_velocity; }
+
+    glm::vec3 getAngularVelocity() const { return m_angular_velocity; }
+
     glm::mat3 getOrientationDerivative() const { return m_orientation_derivative; }
     glm::vec3 getForce() const { return m_force; }
     glm::vec3 getTorque() const { return m_torque; }
@@ -44,7 +50,7 @@ public:
     bool getMovable() { return m_movable; }
 
     // constants
-    const float GRAVITY_ACCELERATION = -.5;
+    const float GRAVITY_ACCELERATION = -1;
 
 protected:
 
@@ -69,7 +75,7 @@ protected:
     glm::vec3 m_angular_momentum;
 
     glm::mat3 m_intertia_tensor_inverse; // this is used to calculate angular velocity
-    glm::vec3 m_angular_velocity; // this isused to calculate orientation derivative
+    glm::vec3 m_angular_velocity; // this is used to calculate orientation derivative
 
     // derivative of state vector
     glm::vec3 m_linear_velocity;

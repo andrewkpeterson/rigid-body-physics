@@ -4,12 +4,12 @@
 
 PhysicsSystem::PhysicsSystem() : colliding(false), collision_spot(glm::vec3(0)), collision_happened(false)
 {
-    //m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, false, false, true, glm::vec3(.7,.7,0)));
-    m_rigid_bodies.push_back(std::make_shared<EllipsoidRigidBodyComponent>(glm::vec3(1,3,1), 1, true, true, true, glm::vec3(.7,.7,0)));
+    m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, true, true, glm::vec3(.7,.7,0)));
+    //m_rigid_bodies.push_back(std::make_shared<EllipsoidRigidBodyComponent>(glm::vec3(1,3,1), 1, true, true, true, glm::vec3(.7,.7,0)));
     //m_rigid_bodies.push_back(std::make_shared<CylinderRigidBodyComponent>(1, 1, 1, false, false, true, glm::vec3(.7,.7,0)));
     m_rigid_bodies[0]->setPosition(glm::vec3(0,2.5,0));
     m_rigid_bodies[0]->setEuelerAngles(glm::vec3(0,0,0));
-    m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, false, false, false, glm::vec3(0,.7,.7)));
+    m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, false, false, glm::vec3(0,.7,.7)));
 
     m_graphics = Graphics::getGlobalInstance();
 }
@@ -56,21 +56,10 @@ void PhysicsSystem::resolveCollisions() {
                 glm::vec3 mtv;
                 glm::vec3 rb1_p;
                 glm::vec3 rb2_p;
-                if (!collision_happened) {
-                    std::tie(had_collision, mtv, rb1_p, rb2_p) = runGJKAndExpandingPolytope(m_rigid_bodies[i], m_rigid_bodies[j]);
-                }
+                std::tie(had_collision, mtv, rb1_p, rb2_p) = runGJKAndExpandingPolytope(m_rigid_bodies[i], m_rigid_bodies[j]);
                 if (had_collision) {
-                    if (!collision_happened) {
-                        collision_spot = rb1_p;
-                    }
-                    collision_happened = true;
-                    std::cout << glm::to_string(mtv) << std::endl;
-                    if (m_rigid_bodies[i]->getMovable()) {
-                        m_rigid_bodies[i]->addToLinearMomentum(m_rigid_bodies[i]->getOrientationMatrix() * mtv);
-                    }
-                    if (m_rigid_bodies[j]->getMovable()) {
-                        m_rigid_bodies[j]->addToLinearMomentum(m_rigid_bodies[i]->getOrientationMatrix() * -mtv);
-                    }
+                    // apply linear and rotational impulse
+                    applyImpulse(m_rigid_bodies[i], m_rigid_bodies[j], mtv, rb1_p);
                 }
             } else {
                 colliding = false;
@@ -78,6 +67,54 @@ void PhysicsSystem::resolveCollisions() {
         }
     }
 
+}
+
+void PhysicsSystem::applyImpulse(std::shared_ptr<RigidBodyComponent> rb1, std::shared_ptr<RigidBodyComponent> rb2, const glm::vec3 mtv, const glm::vec3 contact_point) {
+
+    rb1->calculateDerivatives();
+    rb2->calculateDerivatives();
+
+    // calculate the velocity of the contact points
+    glm::vec3 rb1_contact_velocity = rb1->getLinearVelocity() + glm::cross(rb1->getAngularVelocity(), rb1->getPosition() - contact_point);
+    glm::vec3 rb2_contact_velocity = rb2->getLinearVelocity() + glm::cross(rb2->getAngularVelocity(), rb2->getPosition() - contact_point);
+    std::cout << "rb1_contact_velocity: " << glm::to_string(rb1_contact_velocity) << std::endl;
+    std::cout << "rb2_contact_velocity: " << glm::to_string(rb2_contact_velocity) << std::endl;
+
+    // the magnitude of the relative velocity in the direction of the normalized mtv
+    glm::vec3 norm_mtv = glm::normalize(mtv);
+    float relative_velocity = glm::dot(norm_mtv, (rb1_contact_velocity - rb2_contact_velocity)); // might need a negative here!
+    std::cout << "mtv: " << glm::to_string(mtv) << std::endl;
+    std::cout << "position: " << glm::to_string(rb1->getPosition()) << std::endl;
+    std::cout << "relative velocity: " << glm::to_string(relative_velocity) << std::endl;
+    float numerator = -(1 + BOUNCINESS) * relative_velocity;
+
+    float term1 = 1.0 / rb1->getMass();
+    float term2 = 1.0 / rb2->getMass();
+    glm::vec3 r_rb1 = contact_point - rb1->getPosition();
+    glm::vec3 r_rb2 = contact_point - rb2->getPosition();
+    float term3 = glm::dot(norm_mtv, glm::cross(rb1->getInverseInertiaTensor() * (glm::cross(r_rb1, norm_mtv)), r_rb1));
+    float term4 = glm::dot(norm_mtv, glm::cross(rb2->getInverseInertiaTensor() * (glm::cross(r_rb2, norm_mtv)), r_rb2));
+
+    float j = numerator / (term1 + term2 + term3 + term4);
+    std::cout << "j: " << glm::to_string(j) << std::endl;
+    glm::vec3 impulse = j * norm_mtv;
+
+    std::cout << "impulse: " << glm::to_string(impulse) << std::endl;
+
+    if (rb1->getMovable()) {
+        rb1->addToPosition(-mtv*1.2f);
+        rb1->addToLinearMomentum(impulse);
+        rb1->addToAngularMomentum(glm::cross(r_rb1, impulse));
+    }
+
+    if (rb2->getMovable()) {
+        rb2->addToPosition(mtv*1.2f);
+        rb2->addToLinearMomentum(-impulse);
+        rb2->addToAngularMomentum(glm::cross(r_rb2, -impulse));
+    }
+
+    rb1->zeroOutDerivatives();
+    rb2->zeroOutDerivatives();
 }
 
 MinkowskiDifferenceResult PhysicsSystem::minkowskiDifferenceSupport(glm::vec3 dir, const std::shared_ptr<const RigidBodyComponent> rb1, const std::shared_ptr<const RigidBodyComponent> rb2) {
@@ -111,7 +148,6 @@ std::pair<bool, std::vector<MinkowskiDifferenceResult>> PhysicsSystem::runGJK(st
 
     while (true) {
         s = minkowskiDifferenceSupport(d, rb1, rb2);
-        if (std::isnan(s.m.x) || std::isnan(s.m.y) || std::isnan(s.m.z))
         if (glm::dot(s.m, d) < 0) {
             colliding = false;
             return std::pair<bool, std::vector<MinkowskiDifferenceResult>>(false, simplex);
@@ -164,6 +200,8 @@ std::pair<bool, glm::vec3> PhysicsSystem::doSimplex(std::vector<MinkowskiDiffere
 }
 
 std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex1(std::vector<MinkowskiDifferenceResult> &simplex) {
+    MinkowskiDifferenceResult B_r = simplex[0];
+    MinkowskiDifferenceResult A_r = simplex[1];
     glm::vec3 B = simplex[0].m;
     glm::vec3 A = simplex[1].m;
     if (glm::dot(B-A, -A) > 0) {
@@ -171,12 +209,16 @@ std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex1(std::vector<MinkowskiDi
         return std::pair<bool, glm::vec3>(false, new_dir);
     } else {
         simplex.clear();
-        simplex.push_back(simplex[1]);
+        simplex.push_back(A_r);
         return std::pair<bool, glm::vec3>(false, -A);
     }
 }
 
 std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex2(std::vector<MinkowskiDifferenceResult> &simplex) {
+    MinkowskiDifferenceResult C_r = simplex[0];
+    MinkowskiDifferenceResult B_r = simplex[1];
+    MinkowskiDifferenceResult A_r = simplex[2];
+
     glm::vec3 C = simplex[0].m;
     glm::vec3 B = simplex[1].m;
     glm::vec3 A = simplex[2].m;
@@ -184,20 +226,20 @@ std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex2(std::vector<MinkowskiDi
     if(glm::dot(glm::cross(calculateTriangleNormal(A,B,C), C-A), -A) > 0) {
         if (glm::dot(C-A, -A) > 0) {
             simplex.clear();
-            simplex.push_back(simplex[2]);
-            simplex.push_back(simplex[0]);
+            simplex.push_back(A_r);
+            simplex.push_back(C_r);
             glm::vec3 new_dir = glm::cross(glm::cross(C-A, -A), C-A);
             return std::pair<bool, glm::vec3>(false, new_dir);
         } else {
             if (glm::dot(B-A, -A) > 0) {
                 simplex.clear();
-                simplex.push_back(simplex[2]);
-                simplex.push_back(simplex[1]);
+                simplex.push_back(A_r);
+                simplex.push_back(B_r);
                 glm::vec3 new_dir = glm::cross(glm::cross(B-A, -A), B-A);
                 return std::pair<bool, glm::vec3>(false, new_dir);
             } else {
                 simplex.clear();
-                simplex.push_back(simplex[2]);
+                simplex.push_back(A_r);
                 return std::pair<bool, glm::vec3>(false, -A);
             }
         }
@@ -205,13 +247,13 @@ std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex2(std::vector<MinkowskiDi
         if (glm::dot(-glm::cross(calculateTriangleNormal(A,B,C), B-A), -A) > 0) {
             if (glm::dot(B-A, -A) > 0) {
                 simplex.clear();
-                simplex.push_back(simplex[2]);
-                simplex.push_back(simplex[1]);
+                simplex.push_back(A_r);
+                simplex.push_back(B_r);
                 glm::vec3 new_dir = glm::cross(glm::cross(B-A, -A), B-A);
                 return std::pair<bool, glm::vec3>(false, new_dir);
             } else {
                 simplex.clear();
-                simplex.push_back(simplex[2]);
+                simplex.push_back(A_r);
                 return std::pair<bool, glm::vec3>(false, -A);
             }
         } else {
@@ -219,9 +261,9 @@ std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex2(std::vector<MinkowskiDi
                 return std::pair<bool, glm::vec3>(false, calculateTriangleNormal(A,B,C));
             } else {
                 simplex.clear();
-                simplex.push_back(simplex[1]);
-                simplex.push_back(simplex[0]);
-                simplex.push_back(simplex[2]);
+                simplex.push_back(B_r);
+                simplex.push_back(C_r);
+                simplex.push_back(A_r);
                 return std::pair<bool, glm::vec3>(false, -calculateTriangleNormal(A,B,C));
             }
         }
@@ -229,6 +271,11 @@ std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex2(std::vector<MinkowskiDi
 }
 
 std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex3(std::vector<MinkowskiDifferenceResult> &simplex) {
+    MinkowskiDifferenceResult D_r = simplex[0];
+    MinkowskiDifferenceResult C_r = simplex[1];
+    MinkowskiDifferenceResult B_r = simplex[2];
+    MinkowskiDifferenceResult A_r = simplex[3];
+
     glm::vec3 D = simplex[0].m;
     glm::vec3 C = simplex[1].m;
     glm::vec3 B = simplex[2].m;
@@ -257,21 +304,21 @@ std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex3(std::vector<MinkowskiDi
 
     if ((use_CBA && glm::dot(CBA_normal,-A) > 0) || (!use_CBA && glm::dot(ABC_normal,-A) > 0)) {
         simplex.clear();
-        simplex.push_back(simplex[1]);
-        simplex.push_back(simplex[2]);
-        simplex.push_back(simplex[3]);
+        simplex.push_back(C_r);
+        simplex.push_back(B_r);
+        simplex.push_back(A_r);
         return handleSimplex2(simplex);
     } else if ((use_DCA && glm::dot(DCA_normal,-A) > 0) || (!use_DCA && glm::dot(ACD_normal,-A) > 0)) {
         simplex.clear();
-        simplex.push_back(simplex[1]);
-        simplex.push_back(simplex[0]);
-        simplex.push_back(simplex[3]);
+        simplex.push_back(C_r);
+        simplex.push_back(D_r);
+        simplex.push_back(A_r);
         return handleSimplex2(simplex);
     } else {
         simplex.clear();
-        simplex.push_back(simplex[0]);
-        simplex.push_back(simplex[2]);
-        simplex.push_back(simplex[3]);
+        simplex.push_back(D_r);
+        simplex.push_back(B_r);
+        simplex.push_back(A_r);
         return handleSimplex2(simplex);
     }
 }
@@ -335,10 +382,9 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
     glm::vec3 last_rb1;
     glm::vec3 last_rb2;
     float difference = std::numeric_limits<float>::max();
-    bool first_pass = true;
     std::vector<MinkowskiDifferenceResult> polytope(simplex.begin(), simplex.end());
-    while (first_pass || difference > .01) {
-        std::cout << difference << std::endl;
+    while (true) {
+        //std::cout << difference << std::endl;
 
         // find face plane closest to origin
         float smallest_distance = std::numeric_limits<float>::max();
@@ -347,20 +393,18 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
             glm::vec3 A = polytope[faces[i]].m;
             glm::vec3 B = polytope[faces[i+1]].m;
             glm::vec3 C = polytope[faces[i+2]].m;
-            glm::vec3 normal = glm::cross(B-A, C-A);
+            glm::vec3 normal = glm::normalize(glm::cross(B-A, C-A));
 
             glm::mat3 mat = glm::transpose(glm::mat3(1,1,1,
                           glm::dot(A, B-A), glm::dot(B, B-A), glm::dot(C, B-A),
                           glm::dot(A, C-A), glm::dot(B, C-A), glm::dot(C, C-A)));
             glm::vec3 lambda = glm::inverse(mat) * glm::vec3(1,0,0);
-            float sum = lambda.x + lambda.y + lambda.z;
-            glm::vec3 thing = mat * lambda;
 
             float dist = std::abs(glm::dot(normal, A));
-            if (dist < smallest_distance) {
-                if (lambda.x >= 0 && lambda.y >= 0 && lambda.z >= 0) { // need to check that projection of origin on plane appears inside triangle, should find faster way to do this
-                    smallest_distance = dist;
-                    face_index = i;
+            if (lambda.x >= 0 && lambda.y >= 0 && lambda.z >= 0) { // need to check that projection of origin on plane appears inside triangle, should find faster way to do this
+                if (dist < smallest_distance) {
+                        smallest_distance = dist;
+                        face_index = i;
                 }
             }
         }
@@ -382,24 +426,20 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
 
         glm::vec3 v = lambda.x*A + lambda.y*B + lambda.z*C; //glm::vec3 v = (A + B + C) / 3.0f; //
 
-
-        // calculate AB
-
-
         glm::vec3 AB = B-A;
         glm::vec3 AC = C-A;
         glm::vec3 BC = C-B;
 
         int p = polytope.size();
 
-        glm::vec3 projAB = glm::dot(A, AB) / glm::dot(AB,AB) * AB;
-        glm::vec3 AB_v = A - projAB;
+        glm::vec3 projAB = glm::dot(B, AB) / glm::dot(AB,AB) * AB;
+        glm::vec3 AB_v = B - projAB;
 
-        glm::vec3 projAC = glm::dot(A, AC) / glm::dot(AC,AC) * AC;
-        glm::vec3 AC_v = A - projAC;
+        glm::vec3 projAC = glm::dot(C, AC) / glm::dot(AC,AC) * AC;
+        glm::vec3 AC_v = C - projAC;
 
-        glm::vec3 projBC = glm::dot(B, BC) / glm::dot(BC,BC) * BC;
-        glm::vec3 BC_v = B - projAB;
+        glm::vec3 projBC = glm::dot(C, BC) / glm::dot(BC,BC) * BC;
+        glm::vec3 BC_v = C - projBC;
 
         polytope.push_back(minkowskiDifferenceSupport(AB_v, rb1, rb2)); // p
         polytope.push_back(minkowskiDifferenceSupport(AC_v, rb1, rb2)); // p+1
@@ -410,29 +450,23 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
         MinkowskiDifferenceResult result = minkowskiDifferenceSupport(v, rb1, rb2);
         polytope.push_back(result); // p+3
 
-        faces[face_index] = f1; faces[face_index+1] = p; faces[face_index+2] = p+3; // A, AB, w
-        faces.push_back(f1); faces.push_back(p+1); faces.push_back(p+3); // A, AC, w
-        faces.push_back(f3); faces.push_back(p+1); faces.push_back(p+3); // C, AC, w
-        faces.push_back(f3); faces.push_back(p+2); faces.push_back(p+3); // C, BC, w
-        faces.push_back(f2); faces.push_back(p+2); faces.push_back(p+3); // B, BC, w
-        faces.push_back(f2); faces.push_back(p); faces.push_back(p+3); // B, AB, w
-
-        if (!first_pass) {
-            difference = glm::length(last_v - v);
-        }
-        //std::cout << glm::to_string(v) << std::endl;
-
         last_v = v;
         MinkowskiDifferenceResult A_w = polytope[faces[face_index]];
         MinkowskiDifferenceResult B_w = polytope[faces[face_index + 1]];
         MinkowskiDifferenceResult C_w = polytope[faces[face_index + 2]];
         last_rb1 = lambda.x*A_w.rb1 + lambda.y*B_w.rb1 + lambda.z*C_w.rb1; //last_rb1 = rb1_p; //last_rb1 = lambda.x*rb1_A + lambda.y*rb1_B + lambda.z*rb1_C;
         last_rb2 = lambda.x*A_w.rb2 + lambda.y*B_w.rb2 + lambda.z*C_w.rb2; // //last_rb2 = rb2_p; //last_rb2 = lambda.x*rb2_A + lambda.y*rb2_B + lambda.z*rb2_C;
-        std::cout << "mtv" << glm::to_string(last_v) << std::endl;
-        first_pass = false;
+        std::cout << "mtv in epa: " << glm::to_string(last_v) << std::endl;
+
+        faces[face_index] = f1; faces[face_index+1] = p; faces[face_index+2] = p+3; // A, AB, w
+        faces.push_back(f1); faces.push_back(p+1); faces.push_back(p+3); // A, AC, w
+        faces.push_back(f3); faces.push_back(p+1); faces.push_back(p+3); // C, AC, w
+        faces.push_back(f3); faces.push_back(p+2); faces.push_back(p+3); // C, BC, w
+        faces.push_back(f2); faces.push_back(p+2); faces.push_back(p+3); // B, BC, w
+        faces.push_back(f2); faces.push_back(p); faces.push_back(p+3); // B, AB, w
     }
 
-    return std::make_tuple(last_v,last_rb1, last_rb2);
+    return std::make_tuple(last_v,last_rb1,last_rb2);
 }
 
 
