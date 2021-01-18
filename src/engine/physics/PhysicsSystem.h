@@ -40,7 +40,8 @@ private:
     std::pair<bool, glm::vec3> handleSimplex3(std::vector<MinkowskiDifferenceResult> &simplex);
     glm::vec3 calculateTriangleNormal(glm::vec3 a, glm::vec3 b, glm::vec3 c);
     bool checkIfLineContainsPoint(const glm::vec3 l1, const glm::vec3 l2, const glm::vec3 p);
-    bool checkIfTriangleContainsOrigin(const std::vector<glm::vec3> &simplex);
+    bool checkIfTriangleContainsPoint(const glm::vec3 point, const std::vector<glm::vec3> &simplex);
+    bool checkIfPointIsInPlane(const glm::vec3 point, const std::vector<glm::vec3> &simplex);
     bool checkifTetrahedronContainsOrigin(const std::vector<MinkowskiDifferenceResult> &simplex);
     void applyImpulse(std::shared_ptr<RigidBodyComponent> rb1, std::shared_ptr<RigidBodyComponent> rb2, const glm::vec3 mtv, const glm::vec3 contact_point);
 
@@ -48,7 +49,7 @@ private:
     std::vector<std::shared_ptr<RigidBodyComponent>> m_rigid_bodies;
 
     const float EPSILON = .0001;
-    const float BOUNCINESS = .2; // between 0 and 1
+    const float BOUNCINESS = .05; // between 0 and 1
 };
 
 #endif // PHYSICSSYSTEM_H

@@ -30,7 +30,6 @@ void EllipsoidRigidBodyComponent::draw() {
     m_graphics->clearTransform();
     m_graphics->setColor(m_color);
     m_transform_component->setTransform();
-    m_graphics->scale(glm::vec3(1,3,1));
     m_graphics->drawShape("sphere");
 }
 

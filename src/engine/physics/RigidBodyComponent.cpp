@@ -41,9 +41,10 @@ void RigidBodyComponent::calculateDerivatives() {
 
     // calculate orientation derivative
     glm::mat3 orientation = getOrientationMatrix();
-    m_intertia_tensor_inverse = orientation * m_I_body * glm::transpose(orientation);
-    m_angular_velocity = glm::inverse(m_intertia_tensor_inverse) * m_angular_momentum;
+    m_intertia_tensor_inverse = orientation * m_I_body_inverse * glm::transpose(orientation);
+    m_angular_velocity = m_intertia_tensor_inverse * m_angular_momentum;
     m_orientation_derivative = star(m_angular_velocity) * orientation;
+
     //std::cout << "euler " << glm::to_string(m_transform_component->getEulerAngles()) << std::endl;
     //std::cout << "I_body" << glm::to_string(m_I_body) << std::endl;
     //std::cout << "orientation " << glm::to_string(orientation) << std::endl;
