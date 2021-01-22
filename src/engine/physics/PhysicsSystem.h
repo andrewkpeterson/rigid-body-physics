@@ -34,6 +34,7 @@ private:
     bool collision_happened;
     std::pair<bool, std::vector<MinkowskiDifferenceResult> > runGJK(std::shared_ptr<const RigidBodyComponent> rb1, std::shared_ptr<const RigidBodyComponent> rb2);
     std::tuple<glm::vec3, glm::vec3, glm::vec3> runExpandingPolytope(std::shared_ptr<const RigidBodyComponent> rb1, std::shared_ptr<const RigidBodyComponent> rb2, const std::vector<MinkowskiDifferenceResult> &simplex);
+    std::tuple<glm::vec3, glm::vec3, glm::vec3> runExpandingPolytope2D(std::shared_ptr<const RigidBodyComponent> rb1, std::shared_ptr<const RigidBodyComponent> rb2, const std::vector<MinkowskiDifferenceResult> &simplex);
     std::pair<bool, glm::vec3> doSimplex(std::vector<MinkowskiDifferenceResult> &simplex);
     std::pair<bool, glm::vec3> handleSimplex1(std::vector<MinkowskiDifferenceResult> &simplex);
     std::pair<bool, glm::vec3> handleSimplex2(std::vector<MinkowskiDifferenceResult> &simplex);

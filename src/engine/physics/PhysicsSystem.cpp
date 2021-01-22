@@ -9,7 +9,6 @@
 
 PhysicsSystem::PhysicsSystem() : colliding(false), collision_spot(glm::vec3(0)), collision_happened(false)
 {
-    /*
     m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, true, true, glm::vec3(.7,.7,0)));
     //m_rigid_bodies.push_back(std::make_shared<EllipsoidRigidBodyComponent>(glm::vec3(1,3,1), 1, true, true, true, glm::vec3(.7,.7,0)));
     //m_rigid_bodies.push_back(std::make_shared<CylinderRigidBodyComponent>(1, 1, 1, false, false, true, glm::vec3(.7,.7,0)));
@@ -56,17 +55,17 @@ PhysicsSystem::PhysicsSystem() : colliding(false), collision_spot(glm::vec3(0)),
     m_rigid_bodies[15]->setPosition(glm::vec3(0,15,-100));
     m_rigid_bodies[15]->addToLinearMomentum(glm::vec3(0,0,20));
     m_rigid_bodies[15]->setEuelerAngles(glm::vec3(.5,0,.5));
-    */
 
-    m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, true, true, glm::vec3(.7,.7,0)));
-    //m_rigid_bodies.push_back(std::make_shared<EllipsoidRigidBodyComponent>(glm::vec3(1,3,1), 1, true, true, true, glm::vec3(.7,.7,0)));
+    /*
+    //m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, true, true, glm::vec3(.7,.7,0)));
+    m_rigid_bodies.push_back(std::make_shared<EllipsoidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, true, true, glm::vec3(.7,.7,0)));
     //m_rigid_bodies.push_back(std::make_shared<CylinderRigidBodyComponent>(1, 1, 1, false, false, true, glm::vec3(.7,.7,0)));
 
     m_rigid_bodies[0]->setPosition(glm::vec3(0,2.0,0));
-    m_rigid_bodies[0]->setEuelerAngles(glm::vec3(0,0,.2));
+    m_rigid_bodies[0]->setEuelerAngles(glm::vec3(0,0,.3));
 
     m_rigid_bodies.push_back(std::make_shared<CuboidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, false, false, glm::vec3(0,.7,.7)));
-
+    */
 
     //m_rigid_bodies.push_back(std::make_shared<EllipsoidRigidBodyComponent>(glm::vec3(1,1,1), 1, true, false, false, glm::vec3(.7,.7,0)));
 
@@ -233,17 +232,17 @@ std::pair<bool, glm::vec3> PhysicsSystem::doSimplex(std::vector<MinkowskiDiffere
     assert(simplex.size() >= 1 && simplex.size() <= 4);
 
     if (simplex.size() == 1 && glm::length((*simplex.begin()).m) < EPSILON) {
-        std::cout << "finished 0" << std::endl;
-        return std::pair<bool, glm::vec3>(true, glm::vec3(0));
+        //std::cout << "finished 0" << std::endl;
+        //return std::pair<bool, glm::vec3>(true, glm::vec3(0));
     }
     else if (simplex.size() == 2 && checkIfLineContainsPoint(simplex[0].m, simplex[1].m, glm::vec3(0,0,0))) {
-        std::cout << "finished 1" << std::endl;
-        return std::pair<bool, glm::vec3>(true, glm::vec3(0));
+        //std::cout << "finished 1" << std::endl;
+        //return std::pair<bool, glm::vec3>(true, glm::vec3(0));
     }
     else if (simplex.size() == 3 && checkIfTriangleContainsPoint(glm::vec3(0,0,0), std::vector<glm::vec3>({simplex[0].m, simplex[1].m, simplex[2].m})) &&
              checkIfPointIsInPlane(glm::vec3(0,0,0), std::vector<glm::vec3>({simplex[0].m, simplex[1].m, simplex[2].m}))) {
-        std::cout << "finished 2" << std::endl;
-        return std::pair<bool, glm::vec3>(true, glm::vec3(0));
+        //std::cout << "finished 2" << std::endl;
+        //return std::pair<bool, glm::vec3>(true, glm::vec3(0));
     }
     if (simplex.size() == 4 && checkifTetrahedronContainsOrigin(simplex)) {
         //std::cout << "finished 3" << std::endl;
@@ -297,17 +296,9 @@ std::pair<bool, glm::vec3> PhysicsSystem::handleSimplex2(std::vector<MinkowskiDi
             glm::vec3 new_dir = glm::cross(glm::cross(C-A, -A), C-A);
             return std::pair<bool, glm::vec3>(false, new_dir);
         } else {
-            if (glm::dot(B-A, -A) > 0) {
-                simplex.clear();
-                simplex.push_back(A_r);
-                simplex.push_back(B_r);
-                glm::vec3 new_dir = glm::cross(glm::cross(B-A, -A), B-A);
-                return std::pair<bool, glm::vec3>(false, new_dir);
-            } else {
-                simplex.clear();
-                simplex.push_back(A_r);
-                return std::pair<bool, glm::vec3>(false, -A);
-            }
+            simplex.clear();
+            simplex.push_back(A_r);
+            return std::pair<bool, glm::vec3>(false, -A);
         }
     } else {
         if (glm::dot(-glm::cross(calculateTriangleNormal(A,B,C), B-A), -A) > 0) {
@@ -459,43 +450,15 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
                               1,2,3,
                               0,2,3,
                               0,1,3};
-    std::vector<int> missing = {3,0,1,2};
     glm::vec3 closest_v(std::numeric_limits<float>::max());
+    float best_distance = std::numeric_limits<float>::max();
     glm::vec3 best_rb1;
     glm::vec3 best_rb2;
-    float best_distance = std::numeric_limits<float>::max();
     bool first_pass = true;
+    int iterations = 0;
     std::vector<MinkowskiDifferenceResult> polytope(simplex.begin(), simplex.end());
-    int iteration = 0;
 
-
-    // record the current polytope
-    QString name = "../polytope";
-    name.append("original");
-    name.append(".txt");
-    QFile polytope_file(name);
-    if (polytope_file.open(QIODevice::ReadWrite | QFile::Truncate)) {
-        QTextStream stream(&polytope_file);
-        char buf[512];
-        stream << "vertices=[" << endl;
-        for (int polytope_i = 0; polytope_i < polytope.size(); polytope_i++) {
-            std::sprintf(buf, "[%f, %f, %f],", polytope[polytope_i].m.x, polytope[polytope_i].m.y, polytope[polytope_i].m.z);
-            stream << buf << endl;
-        }
-        stream << "]," << endl;
-
-        stream << "faces=[" << endl;
-        for (int face_i = 0; face_i < faces.size(); face_i+=3) {
-            std::sprintf(buf, "[%d, %d, %d],", faces[face_i], faces[face_i+1], faces[face_i+2]);
-            stream << buf << endl;
-        }
-        stream << "]" << endl;
-    }
-
-
-
-    while (true) {
-
+    while (iterations < 10) {
         // find face plane closest to origin
         float smallest_distance = std::numeric_limits<float>::max();
         int face_index = 0;
@@ -507,44 +470,20 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
 
             glm::vec3 normal = glm::normalize(glm::cross(B-A, C-A));
 
-            glm::vec3 v = glm::dot(A, normal) / glm::dot(normal, normal) * normal;
             double dist = std::abs(glm::dot(normal, A));
 
-            //assert(dist < 1e30);
-
-            //if (checkIfTriangleContainsOrigin(std::vector<glm::vec3>({A,B,C}))) { //if (lambda.x >= 0 && lambda.y >= 0 && lambda.z >= 0) { // need to check that projection of origin on plane appears inside triangle, should find faster way to do this
             if (dist < smallest_distance) {
                 smallest_distance = dist;
                 face_index = i;
                 collinear_check = glm::length(glm::cross(B-A,C-A));
             }
-            //}
         }
 
         MinkowskiDifferenceResult A_w = polytope[faces[face_index]];
         MinkowskiDifferenceResult B_w = polytope[faces[face_index + 1]];
         MinkowskiDifferenceResult C_w = polytope[faces[face_index + 2]];
 
-
         glm::vec3 normal = glm::normalize(glm::cross(B_w.m-A_w.m, C_w.m-A_w.m));
-
-        // search for vertex not in the current face we are looking at
-        std::vector<int> current_faces = {faces[face_index], faces[face_index+1], faces[face_index+2]};
-        glm::vec3 vertex_not_in_face = glm::vec3(0,0,0);
-        for (int face_i = 0; face_i < faces.size(); face_i++) {
-            bool in_face = false;
-            for (int j = 0; j < current_faces.size(); j++) {
-                bool lies_in_face = std::abs(glm::dot(polytope[faces[face_i]].m - A_w.m, normal)) < .001;
-                if (faces[face_i] == current_faces[j] || lies_in_face) {
-                    in_face = true;
-                }
-            }
-            if (!in_face) {
-                vertex_not_in_face = polytope[faces[face_i]].m;
-                break;
-            }
-        }
-        //assert(glm::length(vertex_not_in_face) > .0000001);
 
         if (glm::dot(A_w.m, normal) < 0) {
             normal = -normal;
@@ -552,11 +491,7 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
 
         glm::vec3 v = glm::dot(A_w.m, normal) / glm::dot(normal, normal) * normal;
 
-        glm::vec3 rb1_p;
-        glm::vec3 rb2_p;
         MinkowskiDifferenceResult result = minkowskiDifferenceSupport(v, rb1, rb2);
-
-        MinkowskiDifferenceResult other_result = minkowskiDifferenceSupport(-v, rb1, rb2);
 
         glm::vec3 new_w = result.m;
 
@@ -564,24 +499,16 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
         // corresponding to the mtv. We then know that v is close to the mtv, so we take the projection of w onto v, since that point is on the boundary
         glm::vec3 proj_w_onto_v = glm::dot(v,new_w) / glm::dot(v,v) * v;
 
-        //std::cout << std::abs(glm::length(v - proj_w_onto_v)) << std::endl;
-
-        float dot_v_and_proj_w_onto_v = glm::dot(proj_w_onto_v, v);
-        //assert(dot_v_and_proj_w_onto_v > 0);
-
-        float dot_plane_and_v = glm::dot(A_w.m-B_w.m, v);
-        //assert(std::abs(dot_plane_and_v) < .000001);
-
         if (!first_pass && std::abs(glm::length(v - proj_w_onto_v)) < best_distance) {
-            closest_v = v; //closest_v = proj_w_onto_v;
+            closest_v = v;
             glm::vec3 lambda = Barycentric(v, A_w.m,B_w.m,C_w.m);
-            best_rb1 = lambda.x*A_w.rb1 + lambda.y*B_w.rb1 + lambda.z*C_w.rb1; //last_rb1 = rb1_p; //last_rb1 = lambda.x*rb1_A + lambda.y*rb1_B + lambda.z*rb1_C;
+            best_rb1 = lambda.x*A_w.rb1 + lambda.y*B_w.rb1 + lambda.z*C_w.rb1;
             best_rb2 = lambda.x*A_w.rb2 + lambda.y*B_w.rb2 + lambda.z*C_w.rb2;
             best_distance = glm::length(v - proj_w_onto_v);
         } else if (first_pass) {
-            closest_v = v; //closest_v = proj_w_onto_v;
+            closest_v = v;
             glm::vec3 lambda = Barycentric(v, A_w.m,B_w.m,C_w.m);
-            best_rb1 = lambda.x*A_w.rb1 + lambda.y*B_w.rb1 + lambda.z*C_w.rb1; //last_rb1 = rb1_p; //last_rb1 = lambda.x*rb1_A + lambda.y*rb1_B + lambda.z*rb1_C;
+            best_rb1 = lambda.x*A_w.rb1 + lambda.y*B_w.rb1 + lambda.z*C_w.rb1;
             best_rb2 = lambda.x*A_w.rb2 + lambda.y*B_w.rb2 + lambda.z*C_w.rb2;
             best_distance = glm::length(v - proj_w_onto_v);
         }
@@ -589,198 +516,70 @@ std::tuple<glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runExpandingPolytope(
         if (std::abs(glm::length(v - proj_w_onto_v)) < .01) {
             closest_v = v;
             glm::vec3 lambda = Barycentric(v, A_w.m,B_w.m,C_w.m);
-            best_rb1 = lambda.x*A_w.rb1 + lambda.y*B_w.rb1 + lambda.z*C_w.rb1; //last_rb1 = rb1_p; //last_rb1 = lambda.x*rb1_A + lambda.y*rb1_B + lambda.z*rb1_C;
+            best_rb1 = lambda.x*A_w.rb1 + lambda.y*B_w.rb1 + lambda.z*C_w.rb1;
             best_rb2 = lambda.x*A_w.rb2 + lambda.y*B_w.rb2 + lambda.z*C_w.rb2;
-            return std::make_tuple(closest_v,best_rb1,best_rb2);
+            break;
         }
 
-        // make sure that we don't add a vertex already in the polytope
-        // WE REALLY SHOULD BE ASSERTING THAT THIS IS NOT GOING TO HAPPEN
-        bool w_already_in_polytope = false;
-        for (int i = 0; i < polytope.size(); i++) {
-            if (glm::length(polytope[i].m - new_w) < .0001) {
-                for (int j = 0; j < faces.size(); j++) {
-                    if (i == faces[j]) {
-                        w_already_in_polytope = true; //return std::make_tuple(polytope[i].m, polytope[i].rb1, polytope[i].rb2);
-                        //return std::make_tuple(closest_v,best_rb1,best_rb2);
-                    }
-                }
+        int p = polytope.size();
+        polytope.push_back(result);
+        std::vector<int> new_faces;
+        std::map<std::pair<int,int>,int> edge_counts;
+        std::set<std::pair<int, int>> edges;
+        for (int i = 0; i < faces.size(); i += 3) {
+            glm::vec3 face_A = polytope[faces[i]].m;
+            glm::vec3 face_B = polytope[faces[i + 1]].m;
+            glm::vec3 face_C = polytope[faces[i + 2]].m;
+            glm::vec3 normal = glm::normalize(glm::cross(face_B - face_A, face_C - face_A));
+
+            if (glm::dot(normal, face_A) < 0) {
+                normal = -normal;
             }
-        }
 
-        // make sure that we are not adding a vertex that is already part of a face in the polytope
-        bool w_already_on_face_of_polytope = false;
-        if (!w_already_in_polytope) {
-            for (int i = 0; i < faces.size(); i+=3) {
-                glm::vec3 normal = glm::normalize(glm::cross(polytope[faces[i+1]].m - polytope[faces[i]].m, polytope[faces[i+2]].m - polytope[faces[i]].m));
-                std::vector<glm::vec3> triangle = {polytope[faces[i]].m, polytope[faces[i+1]].m, polytope[faces[i+2]].m};
-                if (glm::abs(glm::dot(polytope[faces[i]].m - new_w, normal)) < .0001 && checkIfTriangleContainsPoint(polytope[faces[i]].m,triangle)) {
-                    w_already_on_face_of_polytope = true;
-                    glm::vec3 face_A = polytope[faces[i]].m;
-                    glm::vec3 face_B = polytope[faces[i + 1]].m;
-                    glm::vec3 face_C = polytope[faces[i + 2]].m;
-                    int A_i = faces[i];
-                    int B_i = faces[i+1];
-                    int C_i = faces[i+2];
-                    int p = polytope.size();
-                    polytope.push_back(result);
-                    faces[i] = A_i; faces[i] = B_i; faces[i] = p;
-                    faces.push_back(A_i); faces.push_back(B_i); faces.push_back(p);
-                    faces.push_back(B_i); faces.push_back(C_i); faces.push_back(p);
+            if (glm::dot(glm::normalize(normal), glm::normalize(new_w - face_A)) > 0) {
+                int A_i = faces[i];
+                int B_i = faces[i+1];
+                int C_i = faces[i+2];
 
-                    // record the current polytope
-                    QString name = "../polytope";
-                    name.append(std::to_string(iteration).c_str());
-                    name.append(".txt");
-                    QFile polytope_file(name);
-                    if (polytope_file.open(QIODevice::ReadWrite | QFile::Truncate)) {
-                        QTextStream stream(&polytope_file);
-                        char buf[512];
-                        stream << "vertices=[" << endl;
-                        for (int polytope_i = 0; polytope_i < polytope.size(); polytope_i++) {
-                            std::sprintf(buf, "[%f, %f, %f],", polytope[polytope_i].m.x, polytope[polytope_i].m.y, polytope[polytope_i].m.z);
-                            stream << buf << endl;
-                        }
-                        stream << "]," << endl;
-
-                        stream << "faces=[" << endl;
-                        for (int face_i = 0; face_i < faces.size(); face_i+=3) {
-                            std::sprintf(buf, "[%d, %d, %d],", faces[face_i], faces[face_i+1], faces[face_i+2]);
-                            stream << buf << endl;
-                        }
-                        stream << "]" << endl;
-                    }
-                    std::cout << "split face in middle" << std::endl;
-                    break;
-                    //return std::make_tuple(closest_v,best_rb1,best_rb2);
-                }
-            }
-        }
-
-        if (!w_already_in_polytope && !w_already_on_face_of_polytope) {
-            int p = polytope.size();
-            polytope.push_back(result);
-            std::vector<int> new_faces;
-            std::map<std::pair<int,int>,int> edge_counts;
-            std::set<std::pair<int, int>> edges;
-            for (int i = 0; i < faces.size(); i += 3) {
-                glm::vec3 face_A = polytope[faces[i]].m;
-                glm::vec3 face_B = polytope[faces[i + 1]].m;
-                glm::vec3 face_C = polytope[faces[i + 2]].m;
-                glm::vec3 normal = glm::normalize(glm::cross(face_B - face_A, face_C - face_A));
-
-                // search for vertex not in the current face we are looking at
-                std::vector<int> current_faces = {faces[i], faces[i+1], faces[i+2]};
-                glm::vec3 vertex_not_in_face = glm::vec3(0,0,0);
-                for (int face_i = 0; face_i < faces.size(); face_i++) {
-                    bool in_face = false;
-                    for (int j = 0; j < current_faces.size(); j++) {
-                        bool lies_in_face = std::abs(glm::dot(polytope[faces[face_i]].m - face_A, normal)) < .001;
-                        if (faces[face_i] == current_faces[j] || lies_in_face) {
-                            in_face = true;
-                        }
-                    }
-                    if (!in_face) {
-                        vertex_not_in_face = polytope[faces[face_i]].m;
-                        break;
-                    }
-                }
-                //assert(glm::length(vertex_not_in_face) > .0000001);
-
-                if (glm::dot(normal, vertex_not_in_face) > 0 && glm::dot(normal, face_A) > 0) {
-                    //assert(false);
-                }
+                int minAB = std::min(A_i, B_i);
+                int maxAB = std::max(A_i, B_i);
+                int minAC = std::min(A_i, C_i);
+                int maxAC = std::max(A_i, C_i);
+                int minBC = std::min(C_i, B_i);
+                int maxBC = std::max(C_i, B_i);
 
 
-                if (glm::dot(normal, face_A) < 0) {
-                    //std::cout << "hello" << std::endl;
-                    normal = -normal;
-                }
-
-                //bool w_on_edge = checkIfLineContainsPoint(face_A, face_B, result.m) || checkIfLineContainsPoint(face_A, face_C, result.m) ||
-                        //checkIfLineContainsPoint(face_C, face_B, result.m);
-
-                std::cout << glm::to_string(face_A) << " " << glm::to_string(face_B) << " " << glm::to_string(face_C) << std::endl;
-                std::cout << glm::dot(glm::normalize(normal), glm::normalize(new_w)) << std::endl;
-                std::cout << "normal " << glm::to_string(normal) << std::endl;
-                if (glm::dot(glm::normalize(normal), glm::normalize(new_w)) > .54 && glm::dot(glm::normalize(normal), glm::normalize(new_w)) < .55) {
-                    std::cout << "stop" << std::endl;
-                }
-
-                if (glm::dot(glm::normalize(normal), glm::normalize(new_w - face_A)) > 0) {
-                    //std::cout << "found face" << std::endl;
-                    //std::cout << glm::to_string(face_A) << " " << glm::to_string(face_B) << " " << glm::to_string(face_C) << std::endl;
-                    //std::cout << glm::dot(glm::normalize(normal), glm::normalize(new_w)) << std::endl;
-                    //std::cout << glm::to_string(result.m) << std::endl;
-                    int A_i = faces[i];
-                    int B_i = faces[i+1];
-                    int C_i = faces[i+2];
-
-                    int minAB = std::min(A_i, B_i);
-                    int maxAB = std::max(A_i, B_i);
-                    int minAC = std::min(A_i, C_i);
-                    int maxAC = std::max(A_i, C_i);
-                    int minBC = std::min(C_i, B_i);
-                    int maxBC = std::max(C_i, B_i);
-
-
-                    if (edges.find(std::pair<int,int>(minAB, maxAB)) != edges.end()) {
-                        edges.erase(edges.find(std::pair<int,int>(minAB, maxAB)));
-                    } else {
-                        edges.insert(std::pair<int,int>(minAB, maxAB));
-                    }
-
-                    if (edges.find(std::pair<int,int>(minAC, maxAC)) != edges.end()) {
-                        edges.erase(edges.find(std::pair<int,int>(minAC, maxAC)));
-                    } else {
-                        edges.insert(std::pair<int,int>(minAC, maxAC));
-                    }
-
-                    if (edges.find(std::pair<int,int>(minBC, maxBC)) != edges.end()) {
-                        edges.erase(edges.find(std::pair<int,int>(minBC, maxBC)));
-                    } else {
-                        edges.insert(std::pair<int,int>(minBC, maxBC));
-                    }
-
+                if (edges.find(std::pair<int,int>(minAB, maxAB)) != edges.end()) {
+                    edges.erase(edges.find(std::pair<int,int>(minAB, maxAB)));
                 } else {
-                    new_faces.push_back(faces[i]); new_faces.push_back(faces[i+1]); new_faces.push_back(faces[i+2]);
+                    edges.insert(std::pair<int,int>(minAB, maxAB));
                 }
-            }
 
-            for (auto it = edges.begin(); it != edges.end(); it++) {
-                new_faces.push_back(it->first); new_faces.push_back(it->second); new_faces.push_back(p);
-            }
-
-            std::cout << "created new faces and repaired" << std::endl;
-            std::cout << "*******************************" << std::endl;
-            faces = new_faces;
-
-            // record the current polytope
-            QString name = "../polytope";
-            name.append(std::to_string(iteration).c_str());
-            name.append(".txt");
-            QFile polytope_file(name);
-            if (polytope_file.open(QIODevice::ReadWrite | QFile::Truncate)) {
-                QTextStream stream(&polytope_file);
-                char buf[512];
-                stream << "vertices=[" << endl;
-                for (int polytope_i = 0; polytope_i < polytope.size(); polytope_i++) {
-                    std::sprintf(buf, "[%f, %f, %f],", polytope[polytope_i].m.x, polytope[polytope_i].m.y, polytope[polytope_i].m.z);
-                    stream << buf << endl;
+                if (edges.find(std::pair<int,int>(minAC, maxAC)) != edges.end()) {
+                    edges.erase(edges.find(std::pair<int,int>(minAC, maxAC)));
+                } else {
+                    edges.insert(std::pair<int,int>(minAC, maxAC));
                 }
-                stream << "]," << endl;
 
-                stream << "faces=[" << endl;
-                for (int face_i = 0; face_i < faces.size(); face_i+=3) {
-                    std::sprintf(buf, "[%d, %d, %d],", faces[face_i], faces[face_i+1], faces[face_i+2]);
-                    stream << buf << endl;
+                if (edges.find(std::pair<int,int>(minBC, maxBC)) != edges.end()) {
+                    edges.erase(edges.find(std::pair<int,int>(minBC, maxBC)));
+                } else {
+                    edges.insert(std::pair<int,int>(minBC, maxBC));
                 }
-                stream << "]" << endl;
+
+            } else {
+                new_faces.push_back(faces[i]); new_faces.push_back(faces[i+1]); new_faces.push_back(faces[i+2]);
             }
         }
 
-        iteration++;
+        for (auto it = edges.begin(); it != edges.end(); it++) {
+            new_faces.push_back(it->first); new_faces.push_back(it->second); new_faces.push_back(p);
+        }
+
+        faces = new_faces;
+
         first_pass = false;
+        iterations++;
     }
 
     return std::make_tuple(closest_v,best_rb1,best_rb2);
@@ -793,11 +592,26 @@ std::tuple<bool, glm::vec3, glm::vec3, glm::vec3> PhysicsSystem::runGJKAndExpand
     glm::vec3 ret_vec = glm::vec3(0);
     glm::vec3 rb1_p;
     glm::vec3 rb2_p;
-    if (pair.first && pair.second.size() > 3) {
-        std::cout << "running epa" << std::endl;
+    if (pair.first && pair.second.size() > 2) {
+        if (pair.second.size() == 3) {
+            while (true) {
+                MinkowskiDifferenceResult new_dir = minkowskiDifferenceSupport(glm::vec3(float(rand()) / float(RAND_MAX), float(rand()) / float(RAND_MAX), rand() / float(RAND_MAX)),
+                                                                               rb1, rb2);
+                bool vec_ok = true;
+                for (int i = 0; i < pair.second.size(); i++) {
+                    if (glm::length(pair.second[i].m - new_dir.m) < .0001) {
+                        vec_ok = false;
+                    }
+                }
+                if (vec_ok) {
+                    pair.second.push_back(new_dir);
+                    break;
+                }
+            }
+        }
         std::tie(ret_vec, rb1_p, rb2_p) = runExpandingPolytope(rb1, rb2, pair.second);
     }
 
-    return std::make_tuple(pair.first && pair.second.size() > 3, ret_vec, rb1_p, rb2_p);
+    return std::make_tuple(pair.first && pair.second.size() > 2, ret_vec, rb1_p, rb2_p);
 }
 
