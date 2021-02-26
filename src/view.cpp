@@ -145,9 +145,17 @@ void View::paintGL()
     checkError();
 
     /** SUPPORT CODE END **/
-
-    m_physics_system->draw();
-    checkError();
+    MainWindow * win = (MainWindow *) QApplication::activeWindow();
+    if (win) {
+        glm::vec3 pos1 = win->getPos1();
+        glm::vec3 pos2 = win->getPos2();
+        glm::vec3 rot1 = win->getRot1();
+        glm::vec3 rot2 = win->getRot2();
+        glm::vec3 scale1 = win->getScale1();
+        glm::vec3 scale2 = win->getScale2();
+        m_physics_system->draw(win->getMode(), pos1, pos2, rot1, rot2, scale1, scale2, win->getObj1(), win->getObj2());
+        checkError();
+    }
 
 
     /** SUPPORT CODE START **/
@@ -305,10 +313,18 @@ void View::tick()
     /** SUPPORT CODE END **/
 
     MainWindow * win = (MainWindow *) QApplication::activeWindow();
-    if (win && win->getMode() == PhysicsDebuggerMode::PHYSICS_MODE) {
-        m_physics_system->tick(seconds);
-    } else if (win && win->getMode() == PhysicsDebuggerMode::COLLISION_MODE) {
-
+    if (win) {
+        glm::vec3 pos1 = win->getPos1();
+        glm::vec3 pos2 = win->getPos2();
+        glm::vec3 rot1 = win->getRot1();
+        glm::vec3 rot2 = win->getRot2();
+        glm::vec3 scale1 = win->getScale1();
+        glm::vec3 scale2 = win->getScale2();
+        if (win && win->getMode() == PhysicsDebuggerMode::PHYSICS_MODE) {
+            m_physics_system->tick(seconds);
+        } else if (win && win->getMode() == PhysicsDebuggerMode::COLLISION_MODE) {
+            m_physics_system->checkCollisionForDebugging(pos1, pos2, rot1, rot2, scale1, scale2, win->getObj1(), win->getObj2());
+        }
     }
 
     /** SUPPORT CODE START **/

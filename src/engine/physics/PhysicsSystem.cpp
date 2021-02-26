@@ -5,6 +5,7 @@
 #include <list>
 #include <map>
 #include <QFile>
+#include "mainwindow.h"
 #include <QTextStream>
 
 PhysicsSystem::PhysicsSystem() : colliding(false), collision_spot(glm::vec3(0)), collision_happened(false)
@@ -77,28 +78,99 @@ void PhysicsSystem::tick(float seconds) {
     PhysicsSolver::eulerStep(this, seconds);
 }
 
-void PhysicsSystem::draw() {
-    for (size_t i = 0; i < m_rigid_bodies.size(); i++) {
-        //std::cout << glm::to_string(m_rigid_bodies[i]->getPosition()) << std::endl;
-        //std::cout << glm::to_string(m_rigid_bodies[i]->getOrientationMatrix()) << std::endl;
-        if (colliding) {
-            Material m;
-            m.color = glm::vec3(1,0,0);
-            m_graphics->setMaterial(m);
-            std::shared_ptr<Camera> ui_cam = std::make_shared<Camera>(glm::vec2(1000, 1000));
-            ui_cam->setUI(true);
-            auto curr_cam = m_graphics->getActiveCamera();
-            m_graphics->setCamera(ui_cam);
-            m_graphics->drawText("COLLISION!",100);
-            m_graphics->setCamera(curr_cam);
+void PhysicsSystem::checkCollisionForDebugging(glm::vec3 pos1, glm::vec3 pos2, glm::vec3 rot1, glm::vec3 rot2, glm::vec3 scale1,
+                                               glm::vec3 scale2, PhysicsDebuggerObject obj1, PhysicsDebuggerObject obj2) {
+    std::shared_ptr<RigidBodyComponent> rb1;
+    std::shared_ptr<RigidBodyComponent> rb2;
+    if (obj1 == PhysicsDebuggerObject::CUBOID) {
+        rb1 = std::make_shared<CuboidRigidBodyComponent>(scale1, 1, true, true, true, glm::vec3(.7,.7,0));
+    } else if (obj1 == PhysicsDebuggerObject::ELLIPSOID) {
+        rb1 = std::make_shared<EllipsoidRigidBodyComponent>(scale1, 1, true, true, true, glm::vec3(.7,.7,0));
+    } else {
+        rb1 = std::make_shared<CylinderRigidBodyComponent>(scale1.x, scale1.y, 1, true, true, true, glm::vec3(.7,.7,0));
+    }
+
+    if (obj2 == PhysicsDebuggerObject::CUBOID) {
+        rb2 = std::make_shared<CuboidRigidBodyComponent>(scale2, 1, true, true, true, glm::vec3(0,.7,.7));
+    } else if (obj2 == PhysicsDebuggerObject::ELLIPSOID) {
+        rb2 = std::make_shared<EllipsoidRigidBodyComponent>(scale2, 1, true, true, true, glm::vec3(0,.7,.7));
+    } else {
+        rb2 = std::make_shared<CylinderRigidBodyComponent>(scale2.x, scale2.y, 1, true, true, true, glm::vec3(0,.7,.7));
+    }
+
+    rb1->setEuelerAngles(rot1);
+    rb1->setPosition(pos1);
+
+    rb2->setEuelerAngles(rot2);
+    rb2->setPosition(pos2);
+
+    glm::vec3 ret_vec = glm::vec3(0);
+    glm::vec3 rb1_p;
+    glm::vec3 rb2_p;
+    bool b;
+
+    std::tie(b, ret_vec, rb1_p, rb2_p) = runGJKAndExpandingPolytope(rb1, rb2);
+
+    if (b) {
+        std::cout << "COLLISION: " << glm::to_string(ret_vec) << std::endl;
+    } else {
+        std::cout << "no collision" << std::endl;
+    }
+
+}
+
+void PhysicsSystem::draw(PhysicsDebuggerMode mode, glm::vec3 pos1, glm::vec3 pos2, glm::vec3 rot1, glm::vec3 rot2, glm::vec3 scale1,
+                         glm::vec3 scale2, PhysicsDebuggerObject obj1, PhysicsDebuggerObject obj2) {
+    if (mode == PhysicsDebuggerMode::PHYSICS_MODE) {
+        for (size_t i = 0; i < m_rigid_bodies.size(); i++) {
+            //std::cout << glm::to_string(m_rigid_bodies[i]->getPosition()) << std::endl;
+            //std::cout << glm::to_string(m_rigid_bodies[i]->getOrientationMatrix()) << std::endl;
+            if (colliding) {
+                Material m;
+                m.color = glm::vec3(1,0,0);
+                m_graphics->setMaterial(m);
+                std::shared_ptr<Camera> ui_cam = std::make_shared<Camera>(glm::vec2(1000, 1000));
+                ui_cam->setUI(true);
+                auto curr_cam = m_graphics->getActiveCamera();
+                m_graphics->setCamera(ui_cam);
+                m_graphics->drawText("COLLISION!",100);
+                m_graphics->setCamera(curr_cam);
+            }
+            if (collision_happened) {
+                m_graphics->clearTransform();
+                m_graphics->translate(collision_spot);
+                m_graphics->scale(.5);
+                m_graphics->drawShape("sphere");
+            }
+            m_rigid_bodies[i]->draw();
         }
-        if (collision_happened) {
-            m_graphics->clearTransform();
-            m_graphics->translate(collision_spot);
-            m_graphics->scale(.5);
-            m_graphics->drawShape("sphere");
+    } else if (mode == PhysicsDebuggerMode::COLLISION_MODE) {
+        std::shared_ptr<RigidBodyComponent> rb1;
+        std::shared_ptr<RigidBodyComponent> rb2;
+        if (obj1 == PhysicsDebuggerObject::CUBOID) {
+            rb1 = std::make_shared<CuboidRigidBodyComponent>(scale1, 1, true, true, true, glm::vec3(.7,.7,0));
+        } else if (obj1 == PhysicsDebuggerObject::ELLIPSOID) {
+            rb1 = std::make_shared<EllipsoidRigidBodyComponent>(scale1, 1, true, true, true, glm::vec3(.7,.7,0));
+        } else {
+            rb1 = std::make_shared<CylinderRigidBodyComponent>(scale1.x, scale1.y, 1, true, true, true, glm::vec3(.7,.7,0));
         }
-        m_rigid_bodies[i]->draw();
+
+        if (obj2 == PhysicsDebuggerObject::CUBOID) {
+            rb2 = std::make_shared<CuboidRigidBodyComponent>(scale2, 1, true, true, true, glm::vec3(0,.7,.7));
+        } else if (obj2 == PhysicsDebuggerObject::ELLIPSOID) {
+            rb2 = std::make_shared<EllipsoidRigidBodyComponent>(scale2, 1, true, true, true, glm::vec3(0,.7,.7));
+        } else {
+            rb2 = std::make_shared<CylinderRigidBodyComponent>(scale2.x, scale2.y, 1, true, true, true, glm::vec3(0,.7,.7));
+        }
+
+        rb1->setEuelerAngles(rot1);
+        rb1->setPosition(pos1);
+
+        rb2->setEuelerAngles(rot2);
+        rb2->setPosition(pos2);
+
+        rb1->draw();
+        rb2->draw();
     }
 }
 
@@ -143,7 +215,7 @@ void PhysicsSystem::applyImpulse(std::shared_ptr<RigidBodyComponent> rb1, std::s
     glm::vec3 norm_mtv = glm::length(mtv) > 0 ? glm::normalize(mtv) : glm::vec3(0);
     if (glm::length(mtv) > 0) {
         float relative_velocity = glm::dot(norm_mtv, (rb1_contact_velocity - rb2_contact_velocity)); // might need a negative here!
-        std::cout << "mtv: " << glm::to_string(mtv) << std::endl;
+        //std::cout << "mtv: " << glm::to_string(mtv) << std::endl;
         //std::cout << "mtv.z: " << mtv.z << std::endl;
         //std::cout << "position: " << glm::to_string(rb1->getPosition()) << std::endl;
         //std::cout << "relative velocity: " << glm::to_string(relative_velocity) << std::endl;
@@ -206,8 +278,8 @@ std::pair<bool, std::vector<MinkowskiDifferenceResult>> PhysicsSystem::runGJK(st
     std::vector<MinkowskiDifferenceResult> simplex;
     simplex.push_back(s);
     glm::vec3 d = -s.m;
-
-    while (true) {
+    unsigned int iterations = 0;
+    while (iterations < 10) {
         s = minkowskiDifferenceSupport(d, rb1, rb2);
         if (glm::dot(s.m, d) < 0) {
             colliding = false;
@@ -220,7 +292,9 @@ std::pair<bool, std::vector<MinkowskiDifferenceResult>> PhysicsSystem::runGJK(st
             return std::pair<bool, std::vector<MinkowskiDifferenceResult>>(true, simplex);
         }
         d = p.second;
+        iterations++;
     }
+    return std::pair<bool, std::vector<MinkowskiDifferenceResult>>(false, simplex);
 }
 
 bool PhysicsSystem::checkIfPointIsInPlane(const glm::vec3 point, const std::vector<glm::vec3> &simplex) {

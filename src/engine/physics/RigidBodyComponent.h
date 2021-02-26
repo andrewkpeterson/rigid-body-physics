@@ -8,7 +8,7 @@
 class RigidBodyComponent
 {
 public:
-    RigidBodyComponent(float mass, bool collides, glm::mat3 I_body, bool movable, bool use_gravity, glm::vec3 color);
+    RigidBodyComponent(float mass, bool collides, glm::mat3 I_body, bool movable, bool use_gravity, glm::vec3 color, glm::vec3 scale = glm::vec3(1,1,1));
 
     glm::mat3 getOrientationMatrix() const;
 

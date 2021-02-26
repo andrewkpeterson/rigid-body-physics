@@ -1,7 +1,7 @@
 #include "EllipsoidRigidBodyComponent.h"
 
 EllipsoidRigidBodyComponent::EllipsoidRigidBodyComponent(glm::vec3 dimensions, float mass, bool collides, bool movable, bool use_gravity, glm::vec3 color) :
-    RigidBodyComponent(mass, collides, calculateIBody(dimensions, mass), movable, use_gravity, color), m_dims(dimensions)
+    RigidBodyComponent(mass, collides, calculateIBody(dimensions, mass), movable, use_gravity, color, dimensions), m_dims(dimensions)
 {
     m_graphics = Graphics::getGlobalInstance();
 }

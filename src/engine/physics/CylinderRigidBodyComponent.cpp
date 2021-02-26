@@ -1,7 +1,7 @@
 #include "CylinderRigidBodyComponent.h"
 
 CylinderRigidBodyComponent::CylinderRigidBodyComponent(float diameter, float height, float mass, bool collides, bool movable, bool use_gravity, glm::vec3 color) :
-   RigidBodyComponent(mass, collides, calculateIBody(diameter, height, mass), movable, use_gravity, color), m_height(height), m_diameter(diameter)
+   RigidBodyComponent(mass, collides, calculateIBody(diameter, height, mass), movable, use_gravity, color, glm::vec3(diameter, height, diameter)), m_height(height), m_diameter(diameter)
 {
     m_graphics = Graphics::getGlobalInstance();
 }

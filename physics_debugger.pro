@@ -20,8 +20,6 @@ win32 {
 }
 
 SOURCES += \
-    libs/OpenFBX/src/miniz.c \
-    libs/OpenFBX/src/ofbx.cpp \
     libs/glew-1.10.0/src/glew.c \
     src/engine/physics/CuboidRigidBodyComponent.cpp \
     src/engine/physics/CylinderRigidBodyComponent.cpp \

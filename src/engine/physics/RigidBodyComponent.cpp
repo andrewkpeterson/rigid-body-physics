@@ -1,11 +1,11 @@
 #include "RigidBodyComponent.h"
 #include "glm/gtx/string_cast.hpp"
 
-RigidBodyComponent::RigidBodyComponent(float mass, bool collides, glm::mat3 I_body, bool movable, bool use_gravity, glm::vec3 color) :
+RigidBodyComponent::RigidBodyComponent(float mass, bool collides, glm::mat3 I_body, bool movable, bool use_gravity, glm::vec3 color, glm::vec3 scale) :
     m_mass(mass), m_collides(collides), m_movable(movable), m_I_body(I_body), m_use_gravity(use_gravity), m_color(color)
 {
     // TODO: when you port this code over, you should be adding this component in your gameobject constructor
-    m_transform_component = std::make_unique<TransformComponent>(glm::vec3(0,0,0), glm::vec3(0,0,0), glm::vec3(1,1,1));
+    m_transform_component = std::make_unique<TransformComponent>(glm::vec3(0,0,0), glm::vec3(0,0,0), scale);
 
     // initialize member variables
     m_I_body_inverse = glm::inverse(m_I_body);

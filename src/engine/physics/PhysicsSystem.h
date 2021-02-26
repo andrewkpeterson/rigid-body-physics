@@ -7,7 +7,8 @@
 #include "src/engine/physics/CylinderRigidBodyComponent.h"
 #include "src/engine/physics/EllipsoidRigidBodyComponent.h"
 
-#include "Eigen/Dense"
+enum class PhysicsDebuggerObject;
+enum class PhysicsDebuggerMode;
 
 struct MinkowskiDifferenceResult {
     glm::vec3 m;
@@ -21,11 +22,15 @@ public:
     PhysicsSystem();
 
     void tick(float seconds);
-    void draw(); // you will take this out when you port over your code
+    void draw(PhysicsDebuggerMode mode, glm::vec3 pos1, glm::vec3 pos2, glm::vec3 rot1, glm::vec3 rot2, glm::vec3 scale1,
+              glm::vec3 scale2, PhysicsDebuggerObject obj1, PhysicsDebuggerObject obj2); // you will take this out when you port over your code
     std::vector<std::shared_ptr<RigidBodyComponent>> &getRigidBodies() { return m_rigid_bodies; }
     void resolveCollisions();
     MinkowskiDifferenceResult minkowskiDifferenceSupport(glm::vec3 dir, const std::shared_ptr<const RigidBodyComponent> rb1, const std::shared_ptr<const RigidBodyComponent> rb2);
     std::tuple<bool, glm::vec3, glm::vec3, glm::vec3> runGJKAndExpandingPolytope(std::shared_ptr<const RigidBodyComponent> rb1, std::shared_ptr<const RigidBodyComponent> rb2);
+
+    void checkCollisionForDebugging(glm::vec3 pos1, glm::vec3 pos2, glm::vec3 rot1, glm::vec3 rot2, glm::vec3 scale1, glm::vec3 scale2,
+                                    PhysicsDebuggerObject obj1, PhysicsDebuggerObject obj2);
 
 private:
     Graphics *m_graphics;
